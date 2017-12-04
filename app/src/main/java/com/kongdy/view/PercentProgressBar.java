@@ -108,8 +108,8 @@ public class PercentProgressBar extends View {
     protected void measureCenterView() {
         if (null != centerView) {
 
-            int centerViewWidth = mWidth - getPaddingLeft() - getPaddingRight() - progressWidth * 2;
-            int centerViewHeight = mHeight - getPaddingTop() - getPaddingBottom() - progressWidth * 2;
+            int centerViewWidth = mWidth - getPaddingLeft() - getPaddingRight() - progressWidth * 4;
+            int centerViewHeight = mHeight - getPaddingTop() - getPaddingBottom() - progressWidth * 4;
 
             centerView.measure(MeasureSpec.makeMeasureSpec(centerViewWidth, MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(centerViewHeight, MeasureSpec.EXACTLY));
@@ -117,8 +117,21 @@ public class PercentProgressBar extends View {
     }
 
     @Override
+    protected void onLayout(boolean b, int i, int i1, int i2, int i3) {
+        super.onLayout(b, i, i1, i2, i3);
+        // layout center view
+        if (null != centerView) {
+            final int left = i + progressWidth * 2;
+            final int top = i1 + progressWidth * 2;
+            final int right = i2 - getPaddingRight() - progressWidth * 2;
+            final int bottom = i3 - getPaddingBottom() - progressWidth * 2;
+            centerView.layout(left, top, right, bottom);
+        }
+    }
+
+    @Override
     protected void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
+        //  super.onDraw(canvas);
         canvas.saveLayer(0, 0, getMeasuredWidth(),
                 getMeasuredHeight(), mainPaint, Canvas.ALL_SAVE_FLAG);
         // draw back
@@ -139,7 +152,7 @@ public class PercentProgressBar extends View {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             normalPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle, sweepAngle / 2, false, normalPaint);
+            canvas.drawArc(barBounds, cursorStartAngle, sweepAngle * 3f / 4f, false, normalPaint);
             cursorStartAngle += sweepAngle;
         }
         // draw end part
@@ -148,13 +161,20 @@ public class PercentProgressBar extends View {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             mainPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle + sweepAngle / 2, sweepAngle / 2, false, mainPaint);
+            canvas.drawArc(barBounds, cursorStartAngle + sweepAngle * 3f / 4f, sweepAngle / 4f, false, mainPaint);
             cursorStartAngle += sweepAngle;
         }
     }
 
     private void drawCenter(Canvas canvas) {
-
+        if (null != centerView) {
+            // calc offset
+            int offsetX = getPaddingLeft() + progressWidth * 2;
+            int offsetY = getPaddingTop() + progressWidth * 2;
+            canvas.translate(offsetX,offsetY);
+            centerView.draw(canvas);
+            canvas.translate(-offsetX,-offsetY);
+        }
     }
 
     public void setDataArray(SparseArray<KProgressBarData> dataArray) {
