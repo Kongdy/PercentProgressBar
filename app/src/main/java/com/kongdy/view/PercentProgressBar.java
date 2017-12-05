@@ -131,28 +131,28 @@ public class PercentProgressBar extends View {
 
     @Override
     protected void onDraw(Canvas canvas) {
-        //  super.onDraw(canvas);
+          super.onDraw(canvas);
         canvas.saveLayer(0, 0, getMeasuredWidth(),
                 getMeasuredHeight(), mainPaint, Canvas.ALL_SAVE_FLAG);
-        // draw back
+        // draw center
+        drawCenter(canvas);
+        // draw progress back
         canvas.drawArc(barBounds, 0, 360, false, backPaint);
         // draw progress
         drawProgress(canvas);
-        // draw center
-        drawCenter(canvas);
 
         canvas.restore();
     }
 
     private void drawProgress(Canvas canvas) {
-        // 进度条两部分分开画，来达到覆盖的效果
+        // 进度条两部分分开画，来达到潘洛斯阶梯的效果
         // draw front part
         float cursorStartAngle = -90;
         for (int i = 0; i < dataArray.size(); i++) {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             normalPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle, sweepAngle * 3f / 4f, false, normalPaint);
+            canvas.drawArc(barBounds, cursorStartAngle, sweepAngle * 4f / 5f, false, normalPaint);
             cursorStartAngle += sweepAngle;
         }
         // draw end part
@@ -161,7 +161,7 @@ public class PercentProgressBar extends View {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             mainPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle + sweepAngle * 3f / 4f, sweepAngle / 4f, false, mainPaint);
+            canvas.drawArc(barBounds, cursorStartAngle + sweepAngle * 4f / 5f, sweepAngle / 5f, false, mainPaint);
             cursorStartAngle += sweepAngle;
         }
     }
@@ -205,6 +205,7 @@ public class PercentProgressBar extends View {
             postInvalidate();
         }
     }
+
 
     public View getCenterView() {
         return centerView;

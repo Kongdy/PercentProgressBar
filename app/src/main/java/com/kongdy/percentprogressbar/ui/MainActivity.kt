@@ -21,15 +21,15 @@ class MainActivity : AppCompatActivity() {
         // load data
         val kp1 = KProgressBarData()
         kp1.color = Color.RED
-        kp1.value = 10f
+        kp1.value = 5f
 
         val kp2 = KProgressBarData()
         kp2.color = Color.BLUE
-        kp2.value = 40f
+        kp2.value = 5f
 
         val kp3 = KProgressBarData()
         kp3.color = Color.GREEN
-        kp3.value = 60f
+        kp3.value = 260f
 
         dataArray.put(0,kp1)
         dataArray.put(1,kp2)
