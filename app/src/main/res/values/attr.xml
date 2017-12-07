@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PercentProgressBar">
+        <attr name="ppb_progress_back" format="color"/>
+        <attr name="ppb_progress_width" format="dimension"/>
+    </declare-styleable>
+</resources>

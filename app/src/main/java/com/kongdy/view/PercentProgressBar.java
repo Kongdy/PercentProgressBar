@@ -1,6 +1,8 @@
 package com.kongdy.view;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -10,13 +12,17 @@ import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
+
+import com.kongdy.percentprogressbar.R;
 
 /**
  * @author kongdy
  * @date 2017/12/4 14:03
  * @describe 百分比进度条
  **/
-public class PercentProgressBar extends View {
+public class PercentProgressBar extends ViewGroup {
 
     // for progress value paint
     private Paint mainPaint;
@@ -36,6 +42,12 @@ public class PercentProgressBar extends View {
     private float maxProgressValue;
     // center view
     private View centerView;
+    // animation
+    private ValueAnimator animator;
+    // animation phase
+    private float phase = 0f;
+
+    private int currentOpenType = OpenType.RESET_ANIMATION;
 
     public PercentProgressBar(Context context) {
         this(context, null);
@@ -57,6 +69,18 @@ public class PercentProgressBar extends View {
 
         int backPaintColor = Color.GRAY;
 
+        TypedArray ta = getContext().obtainStyledAttributes(attrs, R.styleable.PercentProgressBar);
+
+        for (int i = 0; i < ta.getIndexCount(); i++) {
+            int cursorAttr = ta.getIndex(i);
+            if (cursorAttr == R.styleable.PercentProgressBar_ppb_progress_back) {
+                backPaintColor = ta.getColor(R.styleable.PercentProgressBar_ppb_progress_back, Color.GRAY);
+            } else if (cursorAttr == R.styleable.PercentProgressBar_ppb_progress_width) {
+                progressWidth = (int) ta.getDimension(R.styleable.PercentProgressBar_ppb_progress_width, 40f);
+            }
+        }
+
+        ta.recycle();
         mainPaint.setStrokeWidth(progressWidth);
         backPaint.setStrokeWidth(progressWidth);
         normalPaint.setStrokeWidth(progressWidth);
@@ -118,7 +142,7 @@ public class PercentProgressBar extends View {
 
     @Override
     protected void onLayout(boolean b, int i, int i1, int i2, int i3) {
-        super.onLayout(b, i, i1, i2, i3);
+   //     super.onLayout(b, i, i1, i2, i3);
         // layout center view
         if (null != centerView) {
             final int left = i + progressWidth * 2;
@@ -130,8 +154,8 @@ public class PercentProgressBar extends View {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) {
-          super.onDraw(canvas);
+    protected void dispatchDraw(Canvas canvas) {
+        super.dispatchDraw(canvas);
         canvas.saveLayer(0, 0, getMeasuredWidth(),
                 getMeasuredHeight(), mainPaint, Canvas.ALL_SAVE_FLAG);
         // draw center
@@ -152,7 +176,7 @@ public class PercentProgressBar extends View {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             normalPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle, sweepAngle * 4f / 5f, false, normalPaint);
+            canvas.drawArc(barBounds, cursorStartAngle * phase, (sweepAngle * 4f / 5f) * phase, false, normalPaint);
             cursorStartAngle += sweepAngle;
         }
         // draw end part
@@ -161,7 +185,7 @@ public class PercentProgressBar extends View {
             KProgressBarData data = dataArray.valueAt(i);
             float sweepAngle = 360 * data.getPercentValue();
             mainPaint.setColor(data.getColor());
-            canvas.drawArc(barBounds, cursorStartAngle + sweepAngle * 4f / 5f, sweepAngle / 5f, false, mainPaint);
+            canvas.drawArc(barBounds, (cursorStartAngle + sweepAngle * 4f / 5f) * phase, sweepAngle * phase / 5f, false, mainPaint);
             cursorStartAngle += sweepAngle;
         }
     }
@@ -171,14 +195,19 @@ public class PercentProgressBar extends View {
             // calc offset
             int offsetX = getPaddingLeft() + progressWidth * 2;
             int offsetY = getPaddingTop() + progressWidth * 2;
-            canvas.translate(offsetX,offsetY);
+            canvas.translate(offsetX, offsetY);
             centerView.draw(canvas);
-            canvas.translate(-offsetX,-offsetY);
+            canvas.translate(-offsetX, -offsetY);
         }
     }
 
     public void setDataArray(SparseArray<KProgressBarData> dataArray) {
+        setDataArray(dataArray, OpenType.RESET_ANIMATION);
+    }
+
+    public void setDataArray(SparseArray<KProgressBarData> dataArray, int openType) {
         this.dataArray = dataArray;
+        this.currentOpenType = openType;
         calcProperty();
     }
 
@@ -199,6 +228,30 @@ public class PercentProgressBar extends View {
             data.setPercentValue(value / maxProgressValue);
         }
 
+        if (currentOpenType == OpenType.RESET_LOAD) {
+            phase = 1f;
+            reDraw();
+        } else {
+            phase = 0f;
+            if (animator != null && animator.isRunning())
+                animator.cancel();
+            animator = ValueAnimator.ofFloat(0f, 1f);
+            animator.setInterpolator(new AccelerateDecelerateInterpolator());
+            animator.setStartDelay(200);
+            animator.setDuration(500);
+            animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    PercentProgressBar.this.phase = valueAnimator.getAnimatedFraction();
+                    reDraw();
+                }
+            });
+            animator.start();
+        }
+
+    }
+
+    private void reDraw() {
         if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
             postInvalidateOnAnimation();
         } else {
@@ -214,5 +267,22 @@ public class PercentProgressBar extends View {
     // set center view
     public void setCenterView(View centerView) {
         this.centerView = centerView;
+        removeAllViews();
+        addView(centerView);
+    }
+
+    public static final class OpenType {
+        /**
+         * 无动画，直接重置数据
+         */
+        public static final int RESET_LOAD = 0x000001;
+        /**
+         * 先重置数据，然后播放动画
+         */
+        public static final int RESET_ANIMATION = 0x000002;
+        /**
+         * 直接播放动画，会从当前进度播放到目标进度的动画
+         */
+        public static final int SMOOTH_ANIMATION = 0x000003;
     }
 }
